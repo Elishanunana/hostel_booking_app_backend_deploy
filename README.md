@@ -1,40 +1,55 @@
-Hostel Booking Backend API Documentation
-This is the backend API for the Ghanaian hostel booking app, built with Django REST Framework and deployed on Render. It supports user authentication, room management, bookings, payments via Paystack, and more. This guide provides all the details your frontend team needs to integrate with the API.
-Base URL
+# Hostel Booking Backend API
 
-Production: https://test-backend-deploy-svk3.onrender.com
-Local Development: http://localhost:8000 (if running locally)
+A comprehensive backend API for a Ghanaian hostel booking application, built with Django REST Framework and deployed on Render. This API supports user authentication, room management, bookings, payments via Paystack, and more.
 
-Authentication
+## 🌐 Base URLs
 
-JWT Authentication: Most endpoints require a JSON Web Token (JWT) in the Authorization header as Bearer <access_token>.
-Token Acquisition: Use the /api/login/ endpoint to get access and refresh tokens.
-Token Lifespan:
-Access token: Valid for 5 minutes.
-Refresh token: Valid for 24 hours (use /api/auth/refresh/ to get a new access token).
+- **Production**: `https://test-backend-deploy-svk3.onrender.com`
+- **Local Development**: `http://localhost:8000`
 
+## 🔐 Authentication
 
-Roles: Two user types—student (books rooms) and provider (manages rooms and bookings).
+The API uses JWT (JSON Web Token) authentication with the following specifications:
 
-API Endpoints
-All endpoints are prefixed with /api/ unless noted otherwise. Use HTTPS for production requests.
-1. General
+- **Header Format**: `Authorization: Bearer <access_token>`
+- **Token Acquisition**: Use the `/api/login/` endpoint
+- **Token Lifespan**:
+  - Access token: 5 minutes
+  - Refresh token: 24 hours (use `/api/auth/refresh/` to renew)
 
-Homepage (GET /)
-Description: Returns a welcome message.
-Authentication: None required.
-Response:{"message": "Welcome to the Hostel Booking System!"}
+### User Roles
+- **Student**: Can book rooms and manage their bookings
+- **Provider**: Can create rooms and manage booking requests
 
+## 📚 API Endpoints
 
+All endpoints are prefixed with `/api/` unless noted otherwise. Use HTTPS for production requests.
 
+### General
 
+#### Homepage
+```http
+GET /
+```
+Returns a welcome message. No authentication required.
 
-2. Authentication
+**Response:**
+```json
+{
+  "message": "Welcome to the Hostel Booking System!"
+}
+```
 
-Register Student (POST /api/register/student/)
+### 🔑 Authentication
 
-Description: Register a new student user.
-Request Body:{
+#### Register Student
+```http
+POST /api/register/student/
+```
+
+**Request Body:**
+```json
+{
   "username": "shalomkafui",
   "email": "shalomkafui@gmail.com",
   "password": "shalomkafui@2005",
@@ -43,15 +58,18 @@ Request Body:{
   "date_of_birth": "2005-05-28",
   "program": "Land Economy"
 }
+```
 
+**Response:** `201 Created` with user details or `400 Bad Request` if invalid
 
-Response: 201 Created with user details or 400 Bad Request if invalid (e.g., duplicate email).
+#### Register Provider
+```http
+POST /api/register/provider/
+```
 
-
-Register Provider (POST /api/register/provider/)
-
-Description: Register a new provider user.
-Request Body:{
+**Request Body:**
+```json
+{
   "username": "sulemanabdul",
   "password": "sulemanabdul@?provider",
   "business_name": "CanamHostel",
@@ -61,71 +79,60 @@ Request Body:{
   "address": "442 Osu Road, Accra",
   "bank_details": "Fidelity Bank, Acc No: 9599875423"
 }
+```
 
+**Response:** `201 Created` with user details or `400 Bad Request` if invalid
 
-Response: 201 Created with user details or 400 Bad Request if invalid.
+#### Login
+```http
+POST /api/login/
+```
 
-
-Login (POST /api/login/)
-
-Description: Authenticate a user and return JWT tokens.
-Request Body:{
+**Request Body:**
+```json
+{
   "email": "shalomkafui@gmail.com",
   "password": "shalomkafui@2005"
 }
+```
 
-
-Response:{
+**Response:**
+```json
+{
   "access": "<access_token>",
   "refresh": "<refresh_token>"
 }
+```
 
+#### Password Reset Endpoints
 
-Errors: 401 Unauthorized if credentials are invalid.
+**Request Reset:**
+```http
+POST /api/password-reset/request/
+```
 
+**Verify Token:**
+```http
+POST /api/password-reset/verify/
+```
 
-Password Reset Request (POST /api/password-reset/request/)
+**Confirm New Password:**
+```http
+POST /api/password-reset/confirm/
+```
 
-Description: Request a password reset email.
-Request Body:{
-  "email": "shalomkafui@gmail.com"
-}
+### 🏠 Room Management
 
+#### Create Room (Provider Only)
+```http
+POST /api/rooms/create/
+```
 
-Response: 200 OK if email sent, 400 Bad Request if email not found.
+**Headers:** `Authorization: Bearer <access_token>`
 
-
-Password Reset Verify (POST /api/password-reset/verify/)
-
-Description: Verify the reset token sent via email.
-Request Body:{
-  "token": "<reset_token>"
-}
-
-
-Response: 200 OK if valid, 400 Bad Request if invalid.
-
-
-Password Reset Confirm (POST /api/password-reset/confirm/)
-
-Description: Set a new password using a valid reset token.
-Request Body:{
-  "token": "<reset_token>",
-  "password": "newpassword@2025"
-}
-
-
-Response: 200 OK if successful, 400 Bad Request if invalid.
-
-
-
-3. Room Management
-
-Create Room (POST /api/rooms/create/)
-
-Description: Create a new room (provider only).
-Authentication: JWT required (provider role).
-Request Body:{
+**Request Body:**
+```json
+{
   "room_number": "STH001",
   "hostel_name": "St.Theresa's Hostel",
   "price_per_night": "100.00",
@@ -135,175 +142,214 @@ Request Body:{
   "location": "KNUST Campus",
   "facilities": [1, 2, 3, 4]
 }
+```
 
+#### List Provider's Rooms
+```http
+GET /api/rooms/mine/
+```
 
-Response: 201 Created with room details or 403 Forbidden if not a provider.
+**Headers:** `Authorization: Bearer <access_token>` (Provider only)
 
+#### List All Rooms (Public)
+```http
+GET /api/rooms/
+```
 
-List My Rooms (GET /api/rooms/mine/)
+No authentication required.
 
-Description: Get all rooms owned by the provider.
-Authentication: JWT required (provider role).
-Response: List of rooms or 403 Forbidden if not a provider.
+#### Toggle Room Availability
+```http
+POST /api/rooms/<room_id>/toggle-availability/
+```
 
+**Headers:** `Authorization: Bearer <access_token>` (Provider only)
 
-List All Rooms (GET /api/rooms/)
+### 📅 Booking Management
 
-Description: Get all available rooms (public).
-Authentication: None required.
-Response: List of rooms with details (e.g., hostel name, price, availability).
+#### Create Booking (Student Only)
+```http
+POST /api/bookings/
+```
 
+**Headers:** `Authorization: Bearer <access_token>`
 
-Toggle Room Availability (POST /api/rooms/<room_id>/toggle-availability/)
-
-Description: Toggle a room’s availability (provider only).
-Authentication: JWT required (provider role).
-Response: 200 OK with updated room status or 403 Forbidden if not a provider.
-
-
-
-4. Booking Management
-
-Create Booking (POST /api/bookings/)
-
-Description: Create a booking (student only).
-Authentication: JWT required (student role).
-Request Body:{
+**Request Body:**
+```json
+{
   "room_id": 6,
   "check_in_date": "2027-08-01",
   "check_out_date": "2027-08-10"
 }
+```
 
+#### List Student's Bookings
+```http
+GET /api/bookings/my/
+```
 
-Response: 201 Created with booking details or 400 Bad Request if invalid dates/room.
+**Headers:** `Authorization: Bearer <access_token>` (Student only)
 
+#### List Booking Requests (Provider)
+```http
+GET /api/bookings/requests/
+```
 
-List My Bookings (GET /api/bookings/my/)
+**Headers:** `Authorization: Bearer <access_token>` (Provider only)
 
-Description: Get all bookings for the authenticated student.
-Authentication: JWT required (student role).
-Response: List of bookings or 403 Forbidden if not a student.
+#### Update Booking Status
+```http
+POST /api/bookings/<booking_id>/status/
+```
 
+**Headers:** `Authorization: Bearer <access_token>` (Provider only)
 
-List Booking Requests (GET /api/bookings/requests/)
-
-Description: Get all booking requests for the provider’s rooms.
-Authentication: JWT required (provider role).
-Response: List of booking requests or 403 Forbidden if not a provider.
-
-
-Update Booking Status (POST /api/bookings/<booking_id>/status/)
-
-Description: Approve or reject a booking (provider only).
-Authentication: JWT required (provider role).
-Request Body:{
+**Request Body:**
+```json
+{
   "status": "approved"  // or "rejected"
 }
+```
 
+#### Cancel Booking
+```http
+POST /api/bookings/<booking_id>/cancel/
+```
 
-Response: 200 OK with updated booking or 403 Forbidden if not a provider.
+**Headers:** `Authorization: Bearer <access_token>`
 
+### 💰 Payment (Paystack Integration)
 
-Cancel Booking (POST /api/bookings/<booking_id>/cancel/)
+#### Initiate Payment
+```http
+POST /api/payments/initiate/
+```
 
-Description: Cancel a booking (student or provider).
-Authentication: JWT required (student or provider).
-Response: 200 OK if canceled, 403 Forbidden if unauthorized.
+**Headers:** `Authorization: Bearer <access_token>` (Student only)
 
-
-
-5. Payment
-
-Initiate Payment (POST /api/payments/initiate/)
-
-Description: Start a Paystack payment for a booking.
-Authentication: JWT required (student role).
-Request Body:{
+**Request Body:**
+```json
+{
   "booking_id": 29,
   "email": "shalomkafui@gmail.com",
   "amount": 315.00
 }
+```
 
+**Response:** Paystack payment URL and reference
+```json
+{
+  "authorization_url": "...",
+  "reference": "..."
+}
+```
 
-Response: Paystack payment URL and reference (e.g., {"authorization_url": "...", "reference": "..."}).
-Note: Redirect users to the authorization_url to complete payment.
+> **Note:** Redirect users to the `authorization_url` to complete payment.
 
+#### Paystack Webhook
+```http
+POST /api/webhooks/paystack/
+```
 
-Paystack Webhook (POST /api/webhooks/paystack/)
+Handles Paystack events (e.g., `charge.success`). No authentication required (secured by Paystack's signature).
 
-Description: Handles Paystack events (e.g., charge.success).
-Authentication: None (secured by Paystack’s signature).
-Note: Contact the backend developer to configure webhook events in Paystack’s dashboard.
+### 🔧 Utility Endpoints
 
+#### List Facilities
+```http
+GET /api/facilities/
+```
 
+Returns all available facilities (e.g., Wi-Fi, AC). No authentication required.
 
-6. Other Endpoints
+#### Provider Revenue
+```http
+GET /api/revenue/
+```
 
-List Facilities (GET /api/facilities/)
+**Headers:** `Authorization: Bearer <access_token>` (Provider only)
 
-Description: Get all available facilities (e.g., Wi-Fi, AC).
-Authentication: None required.
-Response: List of facilities with IDs and names.
+#### Provider Dashboard Summary
+```http
+GET /api/dashboard/provider/summary/
+```
 
+**Headers:** `Authorization: Bearer <access_token>` (Provider only)
 
-Provider Revenue (GET /api/revenue/)
+## 🔧 Integration Guidelines
 
-Description: Get total revenue for the provider.
-Authentication: JWT required (provider role).
-Response: Revenue summary or 403 Forbidden if not a provider.
+### CORS Configuration
+The backend allows requests from:
+- `http://localhost:3000` (local development)
+- Production frontend URL (configured in Render)
 
+### Required Headers
+- **Authentication**: `Authorization: Bearer <access_token>`
+- **Content Type**: `Content-Type: application/json` for POST requests
 
-Provider Dashboard Summary (GET /api/dashboard/provider/summary/)
+### Paystack Integration
+- Use Paystack test keys for development
+- Redirect users to `authorization_url` after payment initiation
+- Handle payment success/failure via callbacks or booking status polling
 
-Description: Get a summary of provider’s rooms, bookings, and revenue.
-Authentication: JWT required (provider role).
-Response: Dashboard data or 403 Forbidden if not a provider.
+### Error Handling
 
+| Status Code | Description |
+|-------------|-------------|
+| `400 Bad Request` | Invalid input (missing fields, invalid dates) |
+| `401 Unauthorized` | Missing or invalid JWT |
+| `403 Forbidden` | Insufficient permissions |
+| `404 Not Found` | Resource not found |
 
+### Image Handling
+Room images are stored on the backend. Fetch image URLs from room responses and display them in your UI.
 
-Integration Notes
+## 🧪 Testing
 
-CORS: The backend allows requests from http://localhost:3000 (local) and the production FRONTEND_URL (set in Render). Ensure your frontend’s production URL is shared with the backend developer.
-Headers:
-Include Authorization: Bearer <access_token> for authenticated requests.
-Use Content-Type: application/json for POST requests.
+### Local Development Setup
 
+1. **Clone the repository:**
+   ```bash
+   git clone https://github.com/your-username/hostel-booking-backend.git
+   cd hostel-booking-backend
+   ```
 
-Paystack:
-Use Paystack’s test keys for development (contact backend developer for keys).
-After initiating payment, redirect users to the Paystack authorization_url.
-Handle payment success/failure via callbacks or by polling the booking status.
+2. **Install dependencies:**
+   ```bash
+   pip install -r requirements.txt
+   ```
 
+3. **Set up environment variables:**
+   Create a `.env` file with test values (contact backend developer for sample)
 
-Error Handling:
-400 Bad Request: Invalid input (e.g., missing fields, invalid dates).
-401 Unauthorized: Missing or invalid JWT.
-403 Forbidden: User lacks permission (e.g., student accessing provider endpoint).
-404 Not Found: Invalid resource ID (e.g., room or booking not found).
+4. **Run migrations:**
+   ```bash
+   python manage.py migrate
+   ```
 
+5. **Start the server:**
+   ```bash
+   python manage.py runserver
+   ```
 
-Image Handling: Room images (sth_1.jpg, etc.) are stored on the backend. Fetch image URLs from the room response and display them in your UI.
+6. **Test endpoints:**
+   Use Postman or your frontend at `http://localhost:8000/api/`
 
-Testing Instructions
+### Production Testing
 
-Local Testing:
-Clone the backend: git clone https://github.com/your-username/hostel-booking-backend.git.
-Install dependencies: pip install -r requirements.txt.
-Set up .env with test values (contact backend developer for sample .env).
-Run migrations: python manage.py migrate.
-Start server: python manage.py runserver.
-Test endpoints with Postman or your frontend at http://localhost:8000/api/.
+1. Use `https://test-backend-deploy-svk3.onrender.com/api/` for API requests
+2. Test the complete authentication flow: Register → Login → Use access token
+3. Test the booking flow: Create room (provider) → Book room (student) → Initiate payment
+4. Verify CORS by making requests from your frontend's production URL
 
+## 📞 Support
 
-Production Testing:
-Use https://test-backend-deploy-svk3.onrender.com/api/ for API requests.
-Test authentication flow: Register, login, and use the access token.
-Test booking flow: Create a room (as provider), book it (as student), initiate payment.
-Verify CORS by making requests from your frontend’s production URL.
+For technical issues, missing endpoints, CORS errors, or Paystack setup:
 
+- Contact the backend developer
+- Provide your frontend's production URL for CORS configuration
+- Include error logs and request details for faster resolution
 
+---
 
-Contact
-
-For issues (e.g., missing endpoints, CORS errors, Paystack setup), contact the backend developer.
-Share your frontend’s production URL to update CORS_ALLOWED_ORIGINS.
+**Built with Django REST Framework | Deployed on Render | Payments by Paystack**

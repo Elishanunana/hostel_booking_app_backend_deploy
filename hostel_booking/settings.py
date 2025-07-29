@@ -13,15 +13,14 @@ DEBUG = config('DEBUG', default=False, cast=bool)
 ALLOWED_HOSTS = [
     'localhost',
     '127.0.0.1',
-    '.onrender.com',  # Allow all Render subdomains
+    'test-backend-deploy-svk3.onrender.com',  # Explicit Render deployment URL
     config('FRONTEND_URL', default='').replace('https://', '').replace('http://', ''),
 ]
 
 # Remove empty strings from ALLOWED_HOSTS
 ALLOWED_HOSTS = [host for host in ALLOWED_HOSTS if host]
 
-
-# Database configuration - ONLY ONE DATABASE CONFIG
+# Database configuration
 DATABASES = {
     'default': dj_database_url.parse(config('DATABASE_URL'))
 }
@@ -36,7 +35,7 @@ INSTALLED_APPS = [
     'rest_framework',
     'rest_framework_simplejwt',
     'core',
-    'corsheaders'
+    'corsheaders',
 ]
 
 MIDDLEWARE = [
@@ -100,11 +99,11 @@ STATICFILES_STORAGE = 'whitenoise.storage.CompressedManifestStaticFilesStorage'
 
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
-# Update CORS_ALLOWED_ORIGINS
+# CORS configuration
 CORS_ALLOWED_ORIGINS = [
-    "http://localhost:3000",
-    "http://127.0.0.1:3000",
-    config('FRONTEND_URL', default='http://localhost:3000'),
+    'http://localhost:3000',  # For local development
+    'http://127.0.0.1:3000',  # For local development
+    config('FRONTEND_URL', default='http://localhost:3000'),  # Production front-end URL
 ]
 
 CORS_ALLOW_ALL_ORIGINS = config('CORS_ALLOW_ALL_ORIGINS', default=False, cast=bool)
@@ -115,6 +114,10 @@ if not DEBUG:
     SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https')
     SECURE_BROWSER_XSS_FILTER = True
     SECURE_CONTENT_TYPE_NOSNIFF = True
+    SECURE_HSTS_SECONDS = 31536000  # Enable HSTS for 1 year
+    SECURE_HSTS_INCLUDE_SUBDOMAINS = True
+    SECURE_HSTS_PRELOAD = True
+    X_FRAME_OPTIONS = 'DENY'  # Prevent clickjacking
 
 REST_FRAMEWORK = {
     'DEFAULT_AUTHENTICATION_CLASSES': (

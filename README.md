@@ -28,7 +28,6 @@ Response:{"message": "Welcome to the Hostel Booking System!"}
 
 
 
-
 2. Authentication
 
 Register Student (POST /api/register/student/)

@@ -36,7 +36,6 @@ INSTALLED_APPS = [
     'rest_framework_simplejwt',
     'core',
     'corsheaders',
-    'ratelimit',
 ]
 
 MIDDLEWARE = [

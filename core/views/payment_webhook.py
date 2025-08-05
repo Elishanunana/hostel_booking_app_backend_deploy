@@ -46,7 +46,6 @@ def paystack_webhook(request):
         data = payload['data']
         reference = data['reference']
         amount = data['amount'] / 100  # Convert to GHS
-        email = data['customer']['email']
         booking_id = data['metadata'].get('booking_id')
 
         with transaction.atomic():

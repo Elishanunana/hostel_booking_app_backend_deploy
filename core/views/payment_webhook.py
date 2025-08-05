@@ -8,15 +8,24 @@ import hmac
 import hashlib
 from django.conf import settings
 import logging
+from ratelimit.decorators import ratelimit
 
 logger = logging.getLogger(__name__)
 
 @csrf_exempt
+@ratelimit(key='ip', rate='10/m', method='POST', block=True)
 def paystack_webhook(request):
+    # Log rate limit status
+    was_limited = getattr(request, 'limited', False)
+    if was_limited:
+        logger.warning(f"Rate limit exceeded for IP {request.META.get('REMOTE_ADDR')}")
+        return HttpResponse(status=429)  # Too Many Requests
+
     if request.method != 'POST':
+        logger.warning(f"Invalid method {request.method} for webhook")
         return HttpResponse(status=405)
 
-    # Optional: Enable this for Paystack signature verification
+    # Paystack signature verification
     paystack_signature = request.headers.get('X-Paystack-Signature')
     secret_key = settings.PAYSTACK_SECRET_KEY
     computed_signature = hmac.new(

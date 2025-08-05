@@ -34,15 +34,15 @@ class BookingSerializer(serializers.ModelSerializer):
         try:
             room = Room.objects.get(id=room_id)
         except Room.DoesNotExist:
-            raise serializers.ValidationError("Invalid room ID.")
+            raise serializers.ValidationError({"room_id": "Invalid room ID."})
 
         data['room'] = room
 
         if check_out <= check_in:
-            raise serializers.ValidationError("Check-out date must be after check-in date.")
+            raise serializers.ValidationError({"check_out_date": "Check-out date must be after check-in date."})
 
         if not room.is_available:
-            raise serializers.ValidationError("This room is not available for booking.")
+            raise serializers.ValidationError({"non_field_errors": "This room is not available for booking."})
 
         # Check room capacity based on fully paid bookings
         paid_bookings = Booking.objects.filter(
@@ -54,7 +54,7 @@ class BookingSerializer(serializers.ModelSerializer):
         ).count()
 
         if paid_bookings >= room.max_occupancy:
-            raise serializers.ValidationError("This room has reached its maximum occupancy for the selected dates based on fully paid bookings.")
+            raise serializers.ValidationError({"non_field_errors": "This room has reached its maximum occupancy for the selected dates based on fully paid bookings."})
 
         # Check for overlapping bookings by the same student
         student_profile = self.context['request'].user.student_profile
@@ -66,7 +66,7 @@ class BookingSerializer(serializers.ModelSerializer):
         ).exists()
 
         if has_overlap:
-            raise serializers.ValidationError("You already have a booking for this room within the selected dates.")
+            raise serializers.ValidationError({"non_field_errors": "You already have a booking for this room within the selected dates."})
 
         return data
 

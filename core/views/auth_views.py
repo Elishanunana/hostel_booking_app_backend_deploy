@@ -1,3 +1,4 @@
+# SAFE VERSION - Only fixes auth, doesn't change booking flow
 from rest_framework import status
 from rest_framework.response import Response
 from rest_framework.views import APIView
@@ -19,7 +20,12 @@ class RegisterStudentView(APIView):
             user = serializer.save()
             refresh = RefreshToken.for_user(user)
             return Response({
-                "user": StudentRegistrationSerializer(user).data,
+                "user": {
+                    "id": user.id,
+                    "username": user.username,
+                    "email": user.email,
+                    "role": user.role
+                },
                 "refresh": str(refresh),
                 "access": str(refresh.access_token),
             }, status=status.HTTP_201_CREATED)
@@ -28,16 +34,41 @@ class RegisterStudentView(APIView):
 
 class LoginView(APIView):
     def post(self, request):
-        username = request.data.get("username")
+        # FIXED: Now accepts both email and username
+        email = request.data.get("email")
+        username = request.data.get("username") 
         password = request.data.get("password")
-        user = authenticate(username=username, password=password)
+        
+        if not password:
+            return Response({"detail": "Password is required"}, status=status.HTTP_400_BAD_REQUEST)
+        
+        user = None
+        
+        # Try authentication by email first, then username
+        if email:
+            try:
+                user_obj = User.objects.get(email=email)
+                user = authenticate(username=user_obj.username, password=password)
+            except User.DoesNotExist:
+                pass
+        elif username:
+            user = authenticate(username=username, password=password)
+        else:
+            return Response({"detail": "Email or username is required"}, status=status.HTTP_400_BAD_REQUEST)
 
         if user:
             refresh = RefreshToken.for_user(user)
             return Response({
+                "user": {
+                    "id": user.id,
+                    "username": user.username,
+                    "email": user.email,
+                    "role": user.role
+                },
                 "refresh": str(refresh),
                 "access": str(refresh.access_token),
             })
+        
         return Response({"detail": "Invalid credentials"}, status=status.HTTP_401_UNAUTHORIZED)
     
 
@@ -53,4 +84,3 @@ class RegisterProviderView(APIView):
                 "access": str(refresh.access_token),
             }, status=status.HTTP_201_CREATED)
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
-

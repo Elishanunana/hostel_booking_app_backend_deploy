@@ -78,17 +78,17 @@ class UpdateBookingStatusView(APIView):
         if booking.room.provider.user != request.user:
             return Response({"error": "You are not authorized to update this booking."}, status=status.HTTP_403_FORBIDDEN)
 
-        status = request.data.get("status")
-        if status not in ['approved', 'rejected', 'confirmed']:
+        new_status = request.data.get("status")
+        if new_status not in ['approved', 'rejected', 'confirmed']:
             return Response({"error": "Invalid status. Must be 'approved', 'rejected', or 'confirmed'."}, status=status.HTTP_400_BAD_REQUEST)
 
-        if booking.booking_status != 'pending' and status in ['approved', 'rejected']:
-            return Response({"error": f"Cannot change to {status} from {booking.booking_status}. Booking must be pending."}, status=status.HTTP_400_BAD_REQUEST)
+        if booking.booking_status != 'pending' and new_status in ['approved', 'rejected']:
+            return Response({"error": f"Cannot change to {new_status} from {booking.booking_status}. Booking must be pending."}, status=status.HTTP_400_BAD_REQUEST)
 
-        booking.booking_status = status
+        booking.booking_status = new_status
         booking.save()
 
-        if status == 'rejected':
+        if new_status == 'rejected':
             if hasattr(booking, 'payment'):
                 payment = booking.payment
                 payment_id = payment.id

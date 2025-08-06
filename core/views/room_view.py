@@ -6,6 +6,7 @@ from core.models import Room, ProviderProfile
 from core.serializers.room_serializer import RoomSerializer
 from django_filters.rest_framework import DjangoFilterBackend, FilterSet, NumberFilter, CharFilter, BooleanFilter
 from rest_framework.filters import SearchFilter
+from rest_framework.parsers import MultiPartParser, FormParser
 
 class IsProvider(permissions.BasePermission):
     def has_permission(self, request, view):
@@ -26,6 +27,7 @@ class RoomCreateView(generics.CreateAPIView):
     queryset = Room.objects.all()
     serializer_class = RoomSerializer
     permission_classes = [permissions.IsAuthenticated, IsProvider]
+    parser_classes = [MultiPartParser, FormParser]  
 
     def perform_create(self, serializer):
         try:

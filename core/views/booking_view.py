@@ -14,6 +14,11 @@ class IsStudent(permissions.BasePermission):
     def has_permission(self, request, view):
         return request.user.is_authenticated and request.user.role == 'student'
 
+# Reusable permission for providers
+class IsProvider(permissions.BasePermission):
+    def has_permission(self, request, view):
+        return request.user.is_authenticated and request.user.role == 'provider'
+
 class BookingCreateView(generics.CreateAPIView):
     queryset = Booking.objects.all()
     serializer_class = BookingSerializer
@@ -45,14 +50,12 @@ class MyBookingsView(generics.ListAPIView):
 
 class BookingRequestsView(generics.ListAPIView):
     serializer_class = BookingSerializer
-    permission_classes = [permissions.IsAuthenticated]
+    permission_classes = [permissions.IsAuthenticated, IsProvider]
 
     def get_queryset(self):
-        if self.request.user.role != 'provider':
-            raise PermissionDenied("Only providers can view booking requests")
         return Booking.objects.filter(
             room__provider__user=self.request.user,
-            booking_status='pending'  # Only show pending requests
+            booking_status='pending'
         )
 
     def list(self, request, *args, **kwargs):
@@ -64,34 +67,42 @@ class BookingRequestsView(generics.ListAPIView):
         return Response(serializer.data)
 
 class UpdateBookingStatusView(APIView):
-    permission_classes = [permissions.IsAuthenticated]
+    permission_classes = [permissions.IsAuthenticated, IsProvider]
 
-    def patch(self, request, booking_id):
-        if request.user.role != 'provider':
-            raise PermissionDenied("Only providers can update bookings")
-
+    def post(self, request, booking_id):
         try:
             booking = Booking.objects.get(id=booking_id)
         except Booking.DoesNotExist:
-            return Response({"detail": "Booking not found"}, status=status.HTTP_404_NOT_FOUND)
+            return Response({"error": "Booking not found. Please provide a valid booking ID."}, status=status.HTTP_404_NOT_FOUND)
 
         if booking.room.provider.user != request.user:
-            raise PermissionDenied("You don't own the room for this booking")
+            return Response({"error": "You are not authorized to update this booking."}, status=status.HTTP_403_FORBIDDEN)
 
-        new_status = request.data.get("booking_status")
-        if new_status not in ['confirmed', 'cancelled']:
-            return Response({"detail": "Invalid status. Must be 'confirmed' or 'cancelled'"},
-                            status=status.HTTP_400_BAD_REQUEST)
+        status = request.data.get("status")
+        if status not in ['approved', 'rejected', 'confirmed']:
+            return Response({"error": "Invalid status. Must be 'approved', 'rejected', or 'confirmed'."}, status=status.HTTP_400_BAD_REQUEST)
 
-        booking.booking_status = new_status
+        if booking.booking_status != 'pending' and status in ['approved', 'rejected']:
+            return Response({"error": f"Cannot change to {status} from {booking.booking_status}. Booking must be pending."}, status=status.HTTP_400_BAD_REQUEST)
+
+        booking.booking_status = status
         booking.save()
 
-        return Response({
-            "detail": f"Booking status updated to {new_status}"
-        }, status=status.HTTP_200_OK)
+        if status == 'rejected':
+            if hasattr(booking, 'payment'):
+                payment = booking.payment
+                payment_id = payment.id
+                payment.delete()
+                logger.info(f"Payment {payment_id} deleted for rejected booking {booking_id}")
+            booking.room.is_available = True
+            booking.room.save()
+            logger.info(f"Room {booking.room.id} set to available after rejecting booking {booking_id}")
+
+        serializer = BookingSerializer(booking)
+        return Response(serializer.data, status=status.HTTP_200_OK)
 
 class CancelBookingView(APIView):
-    permission_classes = [permissions.IsAuthenticated]
+    permission_classes = [permissions.IsAuthenticated, IsStudent]
 
     def post(self, request, booking_id):
         logger.info(f"Attempting to cancel booking {booking_id} by user {request.user.username}")
@@ -100,10 +111,6 @@ class CancelBookingView(APIView):
         except Booking.DoesNotExist:
             logger.error(f"Booking {booking_id} not found")
             raise NotFound("Booking not found.")
-
-        if request.user.role != 'student':
-            logger.error(f"User {request.user.username} is not a student")
-            raise PermissionDenied("Only students can cancel bookings.")
 
         try:
             student_profile = StudentProfile.objects.get(user=request.user)
@@ -116,7 +123,6 @@ class CancelBookingView(APIView):
             raise PermissionDenied("You are not allowed to cancel this booking.")
 
         with transaction.atomic():
-            # Delete any existing payment, even if booking is already cancelled
             if hasattr(booking, 'payment'):
                 payment = booking.payment
                 payment_id = payment.id
@@ -127,20 +133,19 @@ class CancelBookingView(APIView):
                     logger.error(f"Failed to delete payment {payment_id} for booking {booking_id}: {str(e)}")
                     raise
 
-            if booking.booking_status not in ['pending', 'confirmed']:
-                logger.warning(f"Booking {booking_id} is already cancelled, ensuring payment is deleted")
+            if booking.booking_status not in ['pending', 'approved', 'confirmed']:
+                logger.warning(f"Booking {booking_id} is already cancelled or rejected, ensuring payment is deleted")
             else:
                 booking.booking_status = 'cancelled'
                 booking.save()
                 logger.info(f"Booking {booking_id} cancelled by user {request.user.username}")
 
-            # Update room availability
             paid_bookings = Booking.objects.filter(
                 room=booking.room,
                 check_in_date__lt=booking.check_out_date,
                 check_out_date__gt=booking.check_in_date,
                 payment__status='success',
-                booking_status__in=['pending', 'confirmed']
+                booking_status__in=['approved', 'confirmed']
             ).count()
             logger.info(f"Post-cancellation capacity for room {booking.room.id}: {paid_bookings}/{booking.room.max_occupancy}")
             if paid_bookings < booking.room.max_occupancy:

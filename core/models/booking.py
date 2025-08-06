@@ -11,7 +11,13 @@ class Booking(models.Model):
     check_out_date = models.DateField()
     booking_status = models.CharField(
         max_length=20,
-        choices=[('pending', 'Pending'), ('confirmed', 'Confirmed'), ('cancelled', 'Cancelled')],
+        choices=[
+            ('pending', 'Pending'),
+            ('approved', 'Approved'),
+            ('rejected', 'Rejected'),
+            ('confirmed', 'Confirmed'),
+            ('cancelled', 'Cancelled')
+        ],
         default='pending'
     )
     created_at = models.DateTimeField(default=now)
@@ -25,7 +31,7 @@ class Booking(models.Model):
             ),
             models.UniqueConstraint(
                 fields=['student', 'room', 'check_in_date', 'check_out_date'],
-                condition=Q(booking_status__in=['pending', 'confirmed']),
+                condition=Q(booking_status__in=['pending', 'approved', 'confirmed']),
                 name='unique_student_room_dates'
             )
         ]

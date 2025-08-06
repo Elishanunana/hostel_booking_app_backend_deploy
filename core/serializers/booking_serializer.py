@@ -13,7 +13,7 @@ class BookingSerializer(serializers.ModelSerializer):
         model = Booking
         fields = ['id', 'student', 'room', 'check_in_date', 'check_out_date', 'total_amount',
                   'booking_status', 'created_at', 'student_info', 'booking_status_display', 'room_id']
-        read_only_fields = ['student', 'total_amount', 'booking_status', 'created_at']
+        read_only_fields = ['student', 'total_amount', 'created_at']
 
     def get_student_info(self, obj):
         user = obj.student.user
@@ -48,7 +48,7 @@ class BookingSerializer(serializers.ModelSerializer):
             check_in_date__lt=check_out,
             check_out_date__gt=check_in,
             payment__status='success',
-            booking_status__in=['pending', 'confirmed']
+            booking_status__in=['approved', 'confirmed']
         ).count()
 
         if paid_bookings >= room.max_occupancy:
@@ -60,6 +60,7 @@ class BookingSerializer(serializers.ModelSerializer):
             room=room,
             check_in_date__lt=check_out,
             check_out_date__gt=check_in,
+            booking_status__in=['pending', 'approved', 'confirmed']
         ).exists()
 
         if has_overlap:

@@ -15,17 +15,15 @@ logger = logging.getLogger(__name__)
 @csrf_exempt
 @ratelimit(key='ip', rate='10/m', method='POST', block=True)
 def paystack_webhook(request):
-    # Log rate limit status
     was_limited = getattr(request, 'limited', False)
     if was_limited:
         logger.warning(f"Rate limit exceeded for IP {request.META.get('REMOTE_ADDR')}")
-        return HttpResponse(status=429)  # Too Many Requests
+        return HttpResponse(status=429)
 
     if request.method != 'POST':
         logger.warning(f"Invalid method {request.method} for webhook")
         return HttpResponse(status=405)
 
-    # Paystack signature verification
     paystack_signature = request.headers.get('X-Paystack-Signature')
     secret_key = settings.PAYSTACK_SECRET_KEY
     computed_signature = hmac.new(
@@ -45,7 +43,7 @@ def paystack_webhook(request):
     if event == 'charge.success':
         data = payload['data']
         reference = data['reference']
-        amount = data['amount'] / 100  # Convert to GHS
+        amount = data['amount'] / 100
         booking_id = data['metadata'].get('booking_id')
 
         with transaction.atomic():
@@ -53,29 +51,25 @@ def paystack_webhook(request):
                 booking = Booking.objects.select_for_update().get(id=booking_id)
                 logger.info(f"Processing payment for booking {booking_id}, status: {booking.booking_status}")
 
-                if booking.booking_status != 'pending':
-                    logger.warning(f"Booking {booking_id} is not pending, status: {booking.booking_status}")
+                if booking.booking_status != 'approved':
+                    logger.warning(f"Booking {booking_id} is not approved, status: {booking.booking_status}")
                     return HttpResponse(status=200)
 
-                # Prevent duplicate payments unless existing payment is refunded
                 if hasattr(booking, 'payment') and booking.payment.status != 'refunded':
                     payment = booking.payment
-                    logger.warning(f"Duplicate payment attempt for booking {booking_id}. Existing payment: id={payment.id}, status={payment.status}, amount={payment.amount}")
+                    logger.warning(f"Duplicate payment attempt for booking {booking_id}. Existing payment: id={payment.id}, status={payment.status}")
                     return HttpResponse(status=200)
 
-                # Validate full payment
                 if abs(float(amount) - float(booking.total_amount)) > 0.01:
                     logger.warning(f"Payment amount {amount} does not match booking total {booking.total_amount}")
                     return HttpResponse(status=400)
 
-                # Delete any refunded payment
                 if hasattr(booking, 'payment') and booking.payment.status == 'refunded':
                     payment = booking.payment
                     payment_id = payment.id
                     payment.delete()
                     logger.info(f"Deleted refunded payment {payment_id} for booking {booking_id}")
 
-                # Create new payment
                 Payment.objects.create(
                     booking=booking,
                     amount=amount,
@@ -88,17 +82,15 @@ def paystack_webhook(request):
                 booking.booking_status = 'confirmed'
                 booking.save()
 
-                # Count paid bookings including current
                 paid_bookings = Booking.objects.filter(
                     room=booking.room,
                     check_in_date__lt=booking.check_out_date,
                     check_out_date__gt=booking.check_in_date,
                     payment__status='success',
-                    booking_status__in=['pending', 'confirmed']
+                    booking_status__in=['approved', 'confirmed']
                 ).count()
-                logger.info(f"Checking capacity for room {booking.room.id}: {paid_bookings}/{booking.room.max_occupancy} paid bookings")
+                logger.info(f"Checking capacity for room {booking.room.id}: {paid_bookings}/{booking.room.max_occupancy}")
 
-                logger.info(f"Pre-update room {booking.room.id} availability: {booking.room.is_available}")
                 if paid_bookings >= booking.room.max_occupancy:
                     booking.room.is_available = False
                     booking.room.save()

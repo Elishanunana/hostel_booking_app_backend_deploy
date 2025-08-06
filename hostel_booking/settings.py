@@ -54,7 +54,7 @@ TEMPLATES = [
     {
         'BACKEND': 'django.template.backends.django.DjangoTemplates',
         'DIRS': [],
-        'APP_DIR': True,
+        'APP_DIRS': True,  # Fixed from APP_DIR
         'OPTIONS': {
             'context_processors': [
                 'django.template.context_processors.debug',
@@ -155,7 +155,7 @@ LOGGING = {
         },
         'core': {
             'handlers': ['console'],
-            'level': 'DEBUG',  # Added for password reset debugging
+            'level': 'DEBUG',
         },
     },
 }

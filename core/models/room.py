@@ -1,4 +1,4 @@
-# room.py
+# core/models/room.py
 from django.db import models
 from .provider_profile import ProviderProfile
 from .facility import Facility
@@ -10,7 +10,7 @@ class Room(models.Model):
     max_occupancy = models.IntegerField()
     description = models.TextField(blank=True)
     facilities = models.ManyToManyField(Facility, related_name='rooms', blank=True)
-    images = models.JSONField(default=list)
+    image = models.ImageField(upload_to='room_images/', blank=True, null=True)  # Replaced JSONField
     is_available = models.BooleanField(default=True)
     location = models.CharField(max_length=255, blank=True)
     provider = models.ForeignKey(ProviderProfile, on_delete=models.CASCADE, related_name='rooms')

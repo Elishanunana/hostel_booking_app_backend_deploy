@@ -162,3 +162,7 @@ LOGGING = {
 
 PAYSTACK_SECRET_KEY = config('PAYSTACK_SECRET_KEY')
 FRONTEND_URL = config('FRONTEND_URL')
+
+# hostel_booking/settings.py
+MEDIA_URL = '/media/'
+MEDIA_ROOT = os.path.join(BASE_DIR, 'media')

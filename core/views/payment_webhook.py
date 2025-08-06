@@ -8,7 +8,7 @@ import hmac
 import hashlib
 from django.conf import settings
 import logging
-from ratelimit.decorators import ratelimit
+from django_ratelimit.decorators import ratelimit
 
 logger = logging.getLogger(__name__)
 

@@ -30,21 +30,19 @@ class BookingSerializer(serializers.ModelSerializer):
         check_in = data.get('check_in_date')
         check_out = data.get('check_out_date')
 
-        # Validate room exists
         try:
             room = Room.objects.get(id=room_id)
         except Room.DoesNotExist:
-            raise serializers.ValidationError({"room_id": "Invalid room ID."})
+            raise serializers.ValidationError({"room_id": "Room does not exist. Please select a valid room."})
 
         data['room'] = room
 
         if check_out <= check_in:
-            raise serializers.ValidationError({"check_out_date": "Check-out date must be after check-in date."})
+            raise serializers.ValidationError({"check_out_date": "Check-out date must be after check-in date. Please adjust the dates."})
 
         if not room.is_available:
-            raise serializers.ValidationError({"non_field_errors": "This room is not available for booking."})
+            raise serializers.ValidationError({"room_id": "This room is currently unavailable. Please choose another room."})
 
-        # Check room capacity based on fully paid bookings
         paid_bookings = Booking.objects.filter(
             room=room,
             check_in_date__lt=check_out,
@@ -54,9 +52,8 @@ class BookingSerializer(serializers.ModelSerializer):
         ).count()
 
         if paid_bookings >= room.max_occupancy:
-            raise serializers.ValidationError({"non_field_errors": "This room has reached its maximum occupancy for the selected dates based on fully paid bookings."})
+            raise serializers.ValidationError({"room_id": f"Room has reached its maximum occupancy of {room.max_occupancy} for the selected dates."})
 
-        # Check for overlapping bookings by the same student
         student_profile = self.context['request'].user.student_profile
         has_overlap = Booking.objects.filter(
             student=student_profile,
@@ -66,7 +63,7 @@ class BookingSerializer(serializers.ModelSerializer):
         ).exists()
 
         if has_overlap:
-            raise serializers.ValidationError({"non_field_errors": "You already have a booking for this room within the selected dates."})
+            raise serializers.ValidationError({"non_field_errors": "You already have a booking for this room during the selected dates. Please choose different dates or cancel your existing booking."})
 
         return data
 

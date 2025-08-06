@@ -4,13 +4,23 @@ from rest_framework.views import APIView
 from rest_framework.response import Response
 from core.models import Room, ProviderProfile
 from core.serializers.room_serializer import RoomSerializer
+from django_filters.rest_framework import DjangoFilterBackend, FilterSet, NumberFilter, CharFilter, BooleanFilter
+from rest_framework.filters import SearchFilter
 
-
-# Reusable permission: only providers allowed
 class IsProvider(permissions.BasePermission):
     def has_permission(self, request, view):
         return request.user.is_authenticated and request.user.role == 'provider'
 
+class RoomFilter(FilterSet):
+    price_min = NumberFilter(field_name='price_per_night', lookup_expr='gte')
+    price_max = NumberFilter(field_name='price_per_night', lookup_expr='lte')
+    location = CharFilter(field_name='location', lookup_expr='icontains')
+    hostel_name = CharFilter(field_name='hostel_name', lookup_expr='icontains')
+    is_available = BooleanFilter(field_name='is_available')
+
+    class Meta:
+        model = Room
+        fields = ['price_min', 'price_max', 'location', 'hostel_name', 'is_available']
 
 class RoomCreateView(generics.CreateAPIView):
     queryset = Room.objects.all()
@@ -24,7 +34,6 @@ class RoomCreateView(generics.CreateAPIView):
             raise PermissionDenied("No provider profile found for this user")
         serializer.save(provider=provider)
 
-
 class MyRoomsView(generics.ListAPIView):
     serializer_class = RoomSerializer
     permission_classes = [permissions.IsAuthenticated, IsProvider]
@@ -36,35 +45,13 @@ class MyRoomsView(generics.ListAPIView):
             raise PermissionDenied("No provider profile found")
         return Room.objects.filter(provider=provider)
 
-
 class RoomListView(generics.ListAPIView):
+    queryset = Room.objects.all()
     serializer_class = RoomSerializer
     permission_classes = []  # public
-
-    def get_queryset(self):
-        queryset = Room.objects.all()
-
-        price_min = self.request.query_params.get('price_min')
-        price_max = self.request.query_params.get('price_max')
-        hostel_name = self.request.query_params.get('hostel_name')
-        room_type = self.request.query_params.get('room_type')
-        facilities = self.request.query_params.getlist('facilities')
-
-        if price_min:
-            queryset = queryset.filter(price_per_night__gte=price_min)
-        if price_max:
-            queryset = queryset.filter(price_per_night__lte=price_max)
-        if hostel_name:
-            queryset = queryset.filter(hostel_name__icontains=hostel_name)
-        if room_type:
-            queryset = queryset.filter(room_type__iexact=room_type)
-        if facilities:
-            for name in facilities:
-                queryset = queryset.filter(facilities__name__iexact=name)
-
-        return queryset.distinct()
-
-
+    filter_backends = [DjangoFilterBackend, SearchFilter]
+    filterset_class = RoomFilter
+    search_fields = ['hostel_name', 'location', 'description']
 
 class ToggleRoomAvailabilityView(APIView):
     permission_classes = [permissions.IsAuthenticated, IsProvider]
@@ -86,3 +73,4 @@ class ToggleRoomAvailabilityView(APIView):
             "room_number": room.room_number,
             "is_available": room.is_available
         }, status=status.HTTP_200_OK)
+    

@@ -31,7 +31,7 @@ INSTALLED_APPS = [
     'django.contrib.staticfiles',
     'rest_framework',
     'rest_framework_simplejwt',
-    'django_filters',  # Added for filtering
+    'django_filters',
     'core',
     'corsheaders',
 ]
@@ -54,7 +54,7 @@ TEMPLATES = [
     {
         'BACKEND': 'django.template.backends.django.DjangoTemplates',
         'DIRS': [],
-        'APP_DIRS': True,
+        'APP_DIR': True,
         'OPTIONS': {
             'context_processors': [
                 'django.template.context_processors.debug',
@@ -136,15 +136,26 @@ DEFAULT_FROM_EMAIL = config('EMAIL_HOST_USER')
 LOGGING = {
     'version': 1,
     'disable_existing_loggers': False,
+    'formatters': {
+        'verbose': {
+            'format': '{levelname} {asctime} {module} {message}',
+            'style': '{',
+        },
+    },
     'handlers': {
         'console': {
             'class': 'logging.StreamHandler',
+            'formatter': 'verbose',
         },
     },
     'loggers': {
         'django': {
             'handlers': ['console'],
             'level': 'INFO',
+        },
+        'core': {
+            'handlers': ['console'],
+            'level': 'DEBUG',  # Added for password reset debugging
         },
     },
 }

@@ -6,6 +6,9 @@ from django.core.mail import send_mail
 from django.conf import settings
 from django.contrib.auth.hashers import make_password
 from core.models.password_reset import PasswordResetToken
+import logging
+
+logger = logging.getLogger('core')
 
 User = get_user_model()
 
@@ -59,13 +62,16 @@ def request_password_reset(request):
             recipient_list=[email],
             fail_silently=False,
         )
-        
+        logger.debug(f"Password reset link sent to {email}: {reset_url}")
         return Response({
-            'message': 'Password reset link has been sent to your email.'
+            'message': 'Password reset link has been sent to your email.',
+            'reset_url': reset_url if settings.DEBUG else None  # Return link in debug mode
         }, status=status.HTTP_200_OK)
     except Exception as e:
+        logger.error(f"Failed to send email to {email}: {str(e)}")
         return Response({
-            'error': f'Failed to send email: {str(e)}'
+            'error': f'Failed to send email: {str(e)}',
+            'reset_url': reset_url if settings.DEBUG else None
         }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
 @api_view(['POST'])

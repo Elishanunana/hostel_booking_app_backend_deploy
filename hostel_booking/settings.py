@@ -3,6 +3,9 @@ from pathlib import Path
 from django.urls import path
 from decouple import config
 import dj_database_url
+import cloudinary
+import cloudinary.uploader
+import cloudinary.api
 
 BASE_DIR = Path(__file__).resolve().parent.parent
 
@@ -22,6 +25,14 @@ DATABASES = {
     'default': dj_database_url.parse(config('DATABASE_URL'))
 }
 
+# Cloudinary Configuration
+cloudinary.config(
+    cloud_name=config('CLOUDINARY_CLOUD_NAME'),
+    api_key=config('CLOUDINARY_API_KEY'),
+    api_secret=config('CLOUDINARY_API_SECRET'),
+    secure=True
+)
+
 INSTALLED_APPS = [
     'django.contrib.admin',
     'django.contrib.auth',
@@ -29,6 +40,8 @@ INSTALLED_APPS = [
     'django.contrib.sessions',
     'django.contrib.messages',
     'django.contrib.staticfiles',
+    'cloudinary_storage',  # Add this
+    'cloudinary',  # Add this
     'rest_framework',
     'rest_framework_simplejwt',
     'django_filters',
@@ -54,7 +67,7 @@ TEMPLATES = [
     {
         'BACKEND': 'django.template.backends.django.DjangoTemplates',
         'DIRS': [],
-        'APP_DIRS': True,  # Fixed from APP_DIR
+        'APP_DIRS': True,
         'OPTIONS': {
             'context_processors': [
                 'django.template.context_processors.debug',
@@ -92,6 +105,9 @@ STATIC_URL = '/static/'
 STATIC_ROOT = os.path.join(BASE_DIR, 'staticfiles')
 
 STATICFILES_STORAGE = 'whitenoise.storage.CompressedManifestStaticFilesStorage'
+
+# Cloudinary Storage Configuration
+DEFAULT_FILE_STORAGE = 'cloudinary_storage.storage.MediaCloudinaryStorage'
 
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
@@ -163,6 +179,6 @@ LOGGING = {
 PAYSTACK_SECRET_KEY = config('PAYSTACK_SECRET_KEY')
 FRONTEND_URL = config('FRONTEND_URL')
 
-# hostel_booking/settings.py
+# Media files (keep for backward compatibility, but Cloudinary will handle uploads)
 MEDIA_URL = '/media/'
 MEDIA_ROOT = os.path.join(BASE_DIR, 'media')

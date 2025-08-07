@@ -20,6 +20,9 @@ class RoomSerializer(serializers.ModelSerializer):
         image_file = validated_data.pop('image_upload', None)
         facilities = validated_data.pop('facilities', [])  # Extract facilities
         
+        # Ensure new rooms are always available
+        validated_data['is_available'] = True
+        
         room = Room.objects.create(**validated_data)
         
         if image_file:

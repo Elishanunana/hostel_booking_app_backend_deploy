@@ -39,4 +39,5 @@ urlpatterns = [
     path('password-reset/request/', request_password_reset, name='request_password_reset'),
     path('password-reset/confirm/', confirm_password_reset, name='confirm_password_reset'),
     path('password-reset/verify/', verify_reset_token, name='verify_reset_token'),
+    path('rooms/<int:pk>/', RoomDetailView.as_view(), name='room-detail'),
 ]

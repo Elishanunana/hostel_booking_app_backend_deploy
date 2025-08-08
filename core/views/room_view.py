@@ -76,3 +76,8 @@ class ToggleRoomAvailabilityView(APIView):
             "is_available": room.is_available
         }, status=status.HTTP_200_OK)
     
+
+class RoomDetailView(generics.RetrieveAPIView):
+    queryset = Room.objects.all()
+    serializer_class = RoomSerializer
+    

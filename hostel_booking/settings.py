@@ -47,6 +47,7 @@ INSTALLED_APPS = [
     'django_filters',
     'core',
     'corsheaders',
+    'drf_yasg',
 ]
 
 MIDDLEWARE = [
@@ -118,7 +119,7 @@ CORS_ALLOWED_ORIGINS = [
     config('FRONTEND_URL', default='http://127.0.0.1:3000'),
 ]
 
-CORS_ALLOW_ALL_ORIGINS = config('CORS_ALLOW_ALL_ORIGINS', default=False, cast=bool)
+CORS_ALLOW_ALL_ORIGINS = config('CORS_ALLOW_ALL_ORIGINS', default=True, cast=bool)
 
 if not DEBUG:
     SECURE_SSL_REDIRECT = True

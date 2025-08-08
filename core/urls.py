@@ -8,9 +8,11 @@ from core.views.payment_webhook import paystack_webhook
 from core.views.revenue_view import ProviderRevenueView
 from core.views.facility_view import FacilityListView
 from core.views.provider_dashboard_view import ProviderDashboardSummaryView
+from core.views.room_view import RoomDetailView
 from core.views.password_reset_view import request_password_reset, confirm_password_reset, verify_reset_token
 from rest_framework.views import APIView
 from rest_framework.response import Response
+
 
 # Homepage view
 class HomeView(APIView):

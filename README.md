@@ -897,4 +897,4 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 
 ---
 
-**Built using Django REST Framework | Deployed on Render | Payments by Paystack | Images by Cloudinary**
+**Built with Django REST Framework | Deployed on Render | Payments by Paystack**

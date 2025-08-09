@@ -78,12 +78,13 @@ POST /api/register/student/
 **Request Body**:
 ```json
 {
-  "username": "john_student",
-  "email": "john@example.com",
-  "password": "secure_password123",
-  "phone_number": "0591234567",
-  "date_of_birth": "2000-01-15",
-  "program": "Computer Science"
+  "username": "joewilli",
+  "email": "nunanaelisha2004@gmail.com",
+  "password": "joewilli@2005",
+  "role": "student",
+  "phone_number": "0556661933",
+  "date_of_birth": "2004-05-30",
+  "program": "Computer Engineering"
 }
 ```
 
@@ -110,14 +111,14 @@ POST /api/register/provider/
 **Request Body**:
 ```json
 {
-  "username": "provider_user",
-  "password": "secure_password123",
-  "business_name": "Golden Gate Hostel",
-  "contact_person": "Mr. Kwame Asante",
-  "email": "provider@example.com",
-  "phone_number": "0554567890",
-  "address": "123 University Road, Kumasi",
-  "bank_details": "Fidelity Bank, Acc: 1234567890"
+  "username": "francosamuel",
+  "password": "francosamuel@?provider",
+  "business_name": "Franco Hostel",
+  "contact_person": "John Kwame",
+  "email": "francosamuel@gmail.com",
+  "phone_number": "0246623460",
+  "address": "123 Franco St, Ayeduase",
+  "bank_details": "Fidelity Bank, 99003456789"
 }
 ```
 
@@ -142,14 +143,14 @@ POST /api/register/provider/
 
 ### Login
 ```http
-POST /api/login/
+POST /api/login/  (Works for both Student and Provider)
 ```
 
 **Request Body** (supports both email and username):
 ```json
 {
-  "email": "john@example.com",
-  "password": "secure_password123"
+  "email": "wisdomamedeka@gmail.com", or "username": "wisdomamedeka",
+  "password": "wizee@2005"
 }
 ```
 
